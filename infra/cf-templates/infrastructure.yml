@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: A Java SpringBoot application deployed with EC2 with CodeBuild/Deploy/Pipeline
+Parameters:
+  ProjectName:
+    Type: String
+  MavenProjectName:
+    Type: String
+  SubModuleSha1:
+    Type: String
+  ApiGatewayStageName:
+    Type: String
+    AllowedPattern: "[a-z0-9]+"
+    Default: dev
+  ApiGatewayHTTPMethod:
+    Type: String
+    Default: GET
+  ResourceEndpoint:
+    Type: String
+    Default: bluegreen
+
+Resources:
+
+  ##########################
+  # Lambda
+  ##########################
+
+  LambdaExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Type: AWS::IAM::Role
+
+  LambdaFunction:
+    Properties:
+      Role: !GetAtt LambdaExecutionRole.Arn
+      PackageType: Image
+      Code:
+        ImageUri: !Sub '467420073914.dkr.ecr.eu-west-1.amazonaws.com/${MavenProjectName}:${SubModuleSha1}'
+    Type: AWS::Lambda::Function
+
+  LambdaFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${MavenProjectName}
+      RetentionInDays: 90
+
+  ##########################
+  # Api Gateway
+  ##########################
+
+  ApiGateway:
+    Properties:
+      Name: !Ref MavenProjectName
+      Description: !Ref MavenProjectName
+    Type: AWS::ApiGateway::RestApi
+
+  ProxyResource:
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      RestApiId: !Ref ApiGateway
+      PathPart: !Ref ResourceEndpoint
+    Type: AWS::ApiGateway::Resource
+
+  ApiGatewayRootMethod:
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: !Ref ApiGatewayHTTPMethod
+      ResourceId: !Ref ProxyResource
+      RestApiId: !Ref ApiGateway
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        IntegrationResponses:
+          - StatusCode: 200
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations
+          - lambdaArn: !GetAtt LambdaFunction.Arn
+    Type: AWS::ApiGateway::Method
+
+  ApiGatewayDeployment:
+    Properties:
+      RestApiId: !Ref ApiGateway
+      StageName: !Ref ApiGatewayStageName
+    DependsOn:
+      - ApiGatewayRootMethod
+    Type: AWS::ApiGateway::Deployment
+
+  Permission:
+    Properties:
+      FunctionName: !GetAtt 'LambdaFunction.Arn'
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/${ApiGatewayHTTPMethod}/${ResourceEndpoint}
+    Type: AWS::Lambda::Permission
+
+Outputs:
+  ApiGatewayInvokeURL:
+    Value: !Sub https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${ApiGatewayStageName}/${ResourceEndpoint}
+
+  LambdaArn:
+    Value: !GetAtt LambdaFunction.Arn

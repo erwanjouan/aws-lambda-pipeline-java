@@ -1,0 +1,3 @@
+[submodule "basic-webservice-lambda-java"]
+	path = basic-webservice-lambda-java
+	url = https://github.com/erwanjouan/basic-webservice-lambda-java
