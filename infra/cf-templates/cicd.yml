@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: A Java SpringBoot application built on EC2 with CodeBuild, CodeCommit and CodePipeline
+Description: A Java application built on Lambda with CodeCommit, CodeBuild  and CodePipeline
 Parameters:
   ProjectName:
     Type: String
@@ -14,7 +14,7 @@ Parameters:
     Type: String
   DeploymentConfigName:
     Type: String
-    Default: CodeDeployDefault.LambdaCanary10Percent5Minutes
+    Default: CodeDeployDefault.LambdaAllAtOnce
 
 Resources:
 
@@ -129,6 +129,18 @@ Resources:
           Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+      Policies:
+        - PolicyName: allow-to-access-to-S3
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:List*
+                Resource:
+                  - !Sub "arn:aws:s3:::${ArtifactOutputBucket}"
+                  - !Sub "arn:aws:s3:::${ArtifactOutputBucket}/*"
       Path: /
     Type: AWS::IAM::Role
 
@@ -144,6 +156,9 @@ Resources:
       ServiceRoleArn: !GetAtt CodeDeployer.Arn
       DeploymentConfigName: !Ref DeploymentConfigName
       DeploymentGroupName: !Ref ProjectName
+      DeploymentStyle:
+        DeploymentOption: WITH_TRAFFIC_CONTROL
+        DeploymentType: BLUE_GREEN
     Type: AWS::CodeDeploy::DeploymentGroup
 
   ###############
