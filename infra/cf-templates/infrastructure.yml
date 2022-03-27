@@ -59,6 +59,13 @@ Resources:
       Description: Function versionning
     Type: AWS::Lambda::Version
 
+  LambdaAlias:
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      FunctionVersion: !GetAtt LambdaVersion.Version
+      Name: !Ref MavenProjectName
+    Type: AWS::Lambda::Alias
+
   ##########################
   # Api Gateway
   ##########################
