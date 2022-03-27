@@ -50,6 +50,7 @@ destroy:
 	aws s3 rm s3://$(PROJECT_NAME)-output --recursive || true && \
 	aws s3 rm s3://$${INIT_BUCKET_NAME} --recursive || true && \
 	aws s3 rb s3://$${INIT_BUCKET_NAME}  || true && \
+	aws ecr delete-repository --force --repository-name $(MAVEN_PROJECT_NAME) && \
 	aws cloudformation delete-stack --stack-name $(PROJECT_NAME)-cicd || true && \
 	aws cloudformation delete-stack --stack-name $(PROJECT_NAME)-infrastructure || true && \
 	aws cloudformation delete-stack --stack-name $(PROJECT_NAME)-init || true && \
