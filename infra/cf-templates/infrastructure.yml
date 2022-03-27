@@ -11,9 +11,6 @@ Parameters:
     Type: String
     AllowedPattern: "[a-z0-9]+"
     Default: dev
-  LambdaSha256:
-    Type: String
-    Default: e6beb38ba2aa887740f21d8300e7a41dccbc1ab138ba666a595ad371a855868c
   ApiGatewayHTTPMethod:
     Type: String
     Default: GET
@@ -58,7 +55,6 @@ Resources:
 
   LambdaVersion:
     Properties:
-      CodeSha256: !Ref LambdaSha256
       FunctionName: !Ref LambdaFunction
       Description: Function versionning
     Type: AWS::Lambda::Version
