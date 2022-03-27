@@ -135,6 +135,7 @@ Resources:
   CodeDeployApplication:
     Properties:
       ApplicationName: !Ref ProjectName
+      ComputePlatform: Lambda
     Type: AWS::CodeDeploy::Application
 
   CodeDeployDeploymentGroup:
