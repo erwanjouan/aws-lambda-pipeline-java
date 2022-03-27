@@ -12,6 +12,9 @@ Parameters:
     Default: main
   SubModuleSha1:
     Type: String
+  DeploymentConfigName:
+    Type: String
+    Default: CodeDeployDefault.LambdaCanary10Percent5Minutes
 
 Resources:
 
@@ -109,6 +112,38 @@ Resources:
         Location: !Sub '${ArtifactOutputBucket}/cache'
         Type: S3
     Type: AWS::CodeBuild::Project
+
+  ###############
+  # CodeDeploy
+  ###############
+
+  CodeDeployer:
+    Properties:
+      Description: Provides CodeDeploy service access to expand tags and interact with Auto Scaling on your behalf.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: codedeploy.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+      Path: /
+    Type: AWS::IAM::Role
+
+  CodeDeployApplication:
+    Properties:
+      ApplicationName: !Ref ProjectName
+    Type: AWS::CodeDeploy::Application
+
+  CodeDeployDeploymentGroup:
+    Properties:
+      ApplicationName: !Ref ProjectName
+      ServiceRoleArn: !GetAtt CodeDeployer.Arn
+      DeploymentConfigName: !Ref DeploymentConfigName
+      DeploymentGroupName: !Ref ProjectName
+    Type: AWS::CodeDeploy::DeploymentGroup
 
   ###############
   # CodePipeline
@@ -218,6 +253,18 @@ Resources:
               InputArtifacts:
                 - Name: !Sub '${ProjectName}-zip'
               RunOrder: 1
+            - Name: CodeDeploy
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CodeDeploy
+                Version: 1
+              Configuration:
+                ApplicationName: !Ref CodeDeployApplication
+                DeploymentGroupName: !Ref CodeDeployDeploymentGroup
+              InputArtifacts:
+                - Name: !Sub '${ProjectName}-zip'
+              RunOrder: 2
     Type: AWS::CodePipeline::Pipeline
 
 
