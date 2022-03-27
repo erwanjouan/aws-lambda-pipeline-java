@@ -48,10 +48,16 @@ Resources:
     Type: AWS::Lambda::Function
 
   LambdaFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${MavenProjectName}
       RetentionInDays: 90
+    Type: AWS::Logs::LogGroup
+
+  LambdaVersion:
+    Properties:
+      CodeSha256: !Ref SubModuleSha1
+      FunctionName: !Ref LambdaFunction
+      Description: Function versionning
 
   ##########################
   # Api Gateway

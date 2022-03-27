@@ -21,7 +21,7 @@ deploy:
 	MAVEN_PROJECT_VERSION=$$(./infra/utils/get_mvn_project_version.sh $(MAVEN_PROJECT_NAME)) && \
 	aws ecr create-repository --repository-name $(MAVEN_PROJECT_NAME) || true && \
  	SUB_MODULE_SHA1=$$(git submodule status $(MAVEN_PROJECT_NAME) | grep -o "[0-9a-f]\{40\}") && \
-	aws cloudformation deploy \
+	(aws cloudformation deploy \
 		--capabilities CAPABILITY_NAMED_IAM \
 		--template-file ./infra/cf-templates/cicd.yml \
 		--stack-name $(PROJECT_NAME)-cicd \
@@ -30,7 +30,8 @@ deploy:
 			ProjectVersion=$${MAVEN_PROJECT_VERSION} \
 			MavenProjectName=$(MAVEN_PROJECT_NAME) \
 			InfrastructureStackName=$(PROJECT_NAME)-infrastructure \
-			SubModuleSha1=$${SUB_MODULE_SHA1}
+			SubModuleSha1=$${SUB_MODULE_SHA1} > /dev/null & ) && \
+			./infra/utils/cloudformation_events.sh $(PROJECT_NAME)-cicd
 
 infrastructure:
 	SUB_MODULE_SHA1=$$(git submodule status $(MAVEN_PROJECT_NAME) | grep -o "[0-9a-f]\{40\}") && \
