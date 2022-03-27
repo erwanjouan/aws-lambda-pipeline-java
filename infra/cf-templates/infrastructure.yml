@@ -55,7 +55,6 @@ Resources:
 
   LambdaVersion:
     Properties:
-      CodeSha256: !Ref SubModuleSha1
       FunctionName: !Ref LambdaFunction
       Description: Function versionning
     Type: AWS::Lambda::Version
