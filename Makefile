@@ -7,13 +7,14 @@ init:
 	zip -r $(PROJECT_NAME).zip * && \
 	aws s3 mb s3://$${INIT_BUCKET_NAME} &&\
 	aws s3 cp $(PROJECT_NAME).zip s3://$${INIT_BUCKET_NAME}/init/ && \
-	aws cloudformation deploy \
+	(aws cloudformation deploy \
 		--capabilities CAPABILITY_NAMED_IAM \
 		--template-file ./infra/cf-templates/init.yml \
 		--stack-name $(PROJECT_NAME)-init \
 		--parameter-overrides \
 			ProjectName=$(PROJECT_NAME) \
-			ArtifactInputBucketName=$${INIT_BUCKET_NAME} && \
+			ArtifactInputBucketName=$${INIT_BUCKET_NAME} > /dev/null & ) && \
+			./infra/utils/cloudformation_events.sh $(PROJECT_NAME)-init && \
 	./infra/utils/git_init.sh $(PROJECT_NAME)
 
 deploy:
